@@ -24,3 +24,5 @@ teste para o primeiro bloco
 no terminal digite node main.js
 
 IMAGEM DE COMO IRA APARECER NO TERMINAL
+
+///faça uma criptomoeda simples para que o bloco possa conter várias transações & adicionar recompensas para mineiros

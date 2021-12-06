@@ -1,10 +1,16 @@
 const SHA256 = require('crypto-js/sha256')
 
+class Transaction{
+    constructor(fromAddres, ToAddres, amount){
+        this.fromAddres = fromAddres;
+        this.ToAddres = ToAddres;
+        this.amount = amount;
+    }
+}
 class Block{
-    constructor(index, timestamp, data, previousHash = ''){
-        this.index = index;
+    constructor(timestamp, transactions, previousHash = ''){
         this.timestamp = timestamp;
-        this.data = data;
+        this.transactions = transactions;
         this.previousHash = previousHash;
         // ele irá calcular o hash do nosso bloco
         this.hash = this.calculateHash();
@@ -17,7 +23,7 @@ class Block{
     }
     //calcular o hash de todos os blocos. E entar em uma corrente válida.
     // loop que fará  a execução continuar até que nosso hash comece com zeros suficientes.
-    mineBlock(difficulty){
+    minedBlock(difficulty){
         while(this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")){
             this.nonce++;
             this.hash = this.calculateHash();
@@ -26,32 +32,58 @@ class Block{
     }
 }
 
-
-
-
 // será o responsavel por inicializar o nosso blockchain
 class Blockchain{
     constructor(){
         this.chain = [this.creatingGenesisBlock()];
         // dificulty dira quantos zeros o bloco começará
-        this.difficulty = 4;
+        this.difficulty = 2;
+        this.pendingTransactions = [];
+        this.miningReward = 100;
     }
 
     // ira rertornar um novo bloco criado
     creatingGenesisBlock(){
         // introduzir um / index, data, um nome , hash do bloco anterios (este bloco é o primeiro bloco então ele não pode apontar para nenhum bloco anterior então começará com 0 );
-        return new Block(0, "01/01/2021", "Genesis Block", "0")
+        return new Block("01/01/2021", "Genesis Block", "0")
     }
 
     //retornara o ultimo bloco criado
     getLatestBlock(){
         return this.chain[this.chain.length -1];
     }
-    // metodo responsavel por criar novos blocos
-    addBlock(newBlock){
-        newBlock.previousHash = this.getLatestBlock().hash;
-        newBlock.mineBlock(this.difficulty);
-        this.chain.push(newBlock);
+    
+    minePendingTransactions(miningRewardAnddress){
+        let block = new Block(Date.now(), this.pendingTransactions);
+        block.minedBlock(this.difficulty);
+
+        console.log('Block successfully mined!');
+        this.chain.push(block);
+
+        this.pendingTransactions = [
+            new Transaction(null, miningRewardAnddress, this.miningReward)
+        ];
+    }
+
+    createTransaction(transaction){
+        this.pendingTransactions.push(transaction);
+    }
+
+    getBallanceOfAddress(address){
+        let balance = 0;
+
+        for(const block of this.chain){
+            for(const trans of block.transactions){
+                if(trans.fromAddres === address){
+                    balance -= trans.amount;
+                }
+
+                if(trans.ToAddres === address){
+                    balance += trans.amount;
+                }
+            }
+        }
+        return balance;
     }
     // Metodo para validar um bloco retornará true se for tudo bem se não retornara false se tiver dado algo errado
     isChainValid(){
@@ -74,8 +106,15 @@ class Blockchain{
 
 let savjeeCoin = new Blockchain();
 
-console.log('Mining block 1...');
-savjeeCoin.addBlock(new Block(1, "03/01/2021", { amount: 4 }));
+savjeeCoin.createTransaction(new Transaction('address1', 'address2', 100));
+savjeeCoin.createTransaction(new Transaction('address2', 'address1', 50));
 
-console.log('Mining block 2...');
-savjeeCoin.addBlock(new Block(2, "13/01/2021", { amount: 10 }));
+console.log('\n Starting the miner...');
+savjeeCoin.minePendingTransactions('wallace-address');
+
+console.log('\nBalance of wallace is', savjeeCoin.getBallanceOfAddress('wallace-address'));
+
+console.log('\n Starting the miner again...');
+savjeeCoin.minePendingTransactions('wallace-address');
+
+console.log('\nBalance of wallace is', savjeeCoin.getBallanceOfAddress('wallace-address'));
