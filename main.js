@@ -8,18 +8,33 @@ class Block{
         this.previousHash = previousHash;
         // ele irá calcular o hash do nosso bloco
         this.hash = this.calculateHash();
+        this.nonce = 0;
     }
 
     //metodo para calauclar a hash do bloco
     calculateHash(){
-        return SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data)).toString();
+        return SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data) + this.nonce).toString();
+    }
+    //calcular o hash de todos os blocos. E entar em uma corrente válida.
+    // loop que fará  a execução continuar até que nosso hash comece com zeros suficientes.
+    mineBlock(difficulty){
+        while(this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")){
+            this.nonce++;
+            this.hash = this.calculateHash();
+        }
+        console.log(" Block mined: " + this.hash);
     }
 }
+
+
+
 
 // será o responsavel por inicializar o nosso blockchain
 class Blockchain{
     constructor(){
         this.chain = [this.creatingGenesisBlock()];
+        // dificulty dira quantos zeros o bloco começará
+        this.difficulty = 4;
     }
 
     // ira rertornar um novo bloco criado
@@ -35,7 +50,7 @@ class Blockchain{
     // metodo responsavel por criar novos blocos
     addBlock(newBlock){
         newBlock.previousHash = this.getLatestBlock().hash;
-        newBlock.hash = newBlock.calculateHash();
+        newBlock.mineBlock(this.difficulty);
         this.chain.push(newBlock);
     }
     // Metodo para validar um bloco retornará true se for tudo bem se não retornara false se tiver dado algo errado
@@ -58,17 +73,9 @@ class Blockchain{
 }
 
 let savjeeCoin = new Blockchain();
+
+console.log('Mining block 1...');
 savjeeCoin.addBlock(new Block(1, "03/01/2021", { amount: 4 }));
+
+console.log('Mining block 2...');
 savjeeCoin.addBlock(new Block(2, "13/01/2021", { amount: 10 }));
-
-console.log('Is blockchain valid ? ' + savjeeCoin.isChainValid());
-
-// tentando modificar a quantidade enviada após o bloco 1 ser criado, retornara falso pois apos ser criado o bloco n pode ser modificado.
-savjeeCoin.chain[1].data = {amount : 100};
-
-// tentando modificar a hash do bloco após o bloco 1 ser criado. retornara falso pois apos ser criado o bloco n pode ser modificado.
-savjeeCoin.chain[1].data = savjeeCoin.chain[1].calculateHash();
-
-console.log('Is blockchain valid ? ' + savjeeCoin.isChainValid());
-
-//console.log(JSON.stringify(savjeeCoin, null, 4));
