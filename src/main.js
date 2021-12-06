@@ -1,120 +1,25 @@
-const SHA256 = require('crypto-js/sha256')
+const {Blockchain, Transaction} = require('./blockchain');
+const EC = require('elliptic').ec;
+const ec = new EC('secp256k1');
 
-class Transaction{
-    constructor(fromAddres, ToAddres, amount){
-        this.fromAddres = fromAddres;
-        this.ToAddres = ToAddres;
-        this.amount = amount;
-    }
-}
-class Block{
-    constructor(timestamp, transactions, previousHash = ''){
-        this.timestamp = timestamp;
-        this.transactions = transactions;
-        this.previousHash = previousHash;
-        // ele irá calcular o hash do nosso bloco
-        this.hash = this.calculateHash();
-        this.nonce = 0;
-    }
 
-    //metodo para calauclar a hash do bloco
-    calculateHash(){
-        return SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data) + this.nonce).toString();
-    }
-    //calcular o hash de todos os blocos. E entar em uma corrente válida.
-    // loop que fará  a execução continuar até que nosso hash comece com zeros suficientes.
-    minedBlock(difficulty){
-        while(this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")){
-            this.nonce++;
-            this.hash = this.calculateHash();
-        }
-        console.log(" Block mined: " + this.hash);
-    }
-}
+// Sua chave privada vai aqui
+const myKey = ec.keyFromPrivate('44ac7792f87071225c07bdb1f48cc91e123f2a117be071fd413fd13499687dae');
 
-// será o responsavel por inicializar o nosso blockchain
-class Blockchain{
-    constructor(){
-        this.chain = [this.creatingGenesisBlock()];
-        // dificulty dira quantos zeros o bloco começará
-        this.difficulty = 2;
-        this.pendingTransactions = [];
-        this.miningReward = 100;
-    }
+// A partir daí, podemos calcular sua chave pública (que também funciona como o endereço de sua carteira)
+const myWalletAddress = myKey.getPublic('hex')
 
-    // ira rertornar um novo bloco criado
-    creatingGenesisBlock(){
-        // introduzir um / index, data, um nome , hash do bloco anterios (este bloco é o primeiro bloco então ele não pode apontar para nenhum bloco anterior então começará com 0 );
-        return new Block("01/01/2021", "Genesis Block", "0")
-    }
-
-    //retornara o ultimo bloco criado
-    getLatestBlock(){
-        return this.chain[this.chain.length -1];
-    }
-    
-    minePendingTransactions(miningRewardAnddress){
-        let block = new Block(Date.now(), this.pendingTransactions);
-        block.minedBlock(this.difficulty);
-
-        console.log('Block successfully mined!');
-        this.chain.push(block);
-
-        this.pendingTransactions = [
-            new Transaction(null, miningRewardAnddress, this.miningReward)
-        ];
-    }
-
-    createTransaction(transaction){
-        this.pendingTransactions.push(transaction);
-    }
-
-    getBallanceOfAddress(address){
-        let balance = 0;
-
-        for(const block of this.chain){
-            for(const trans of block.transactions){
-                if(trans.fromAddres === address){
-                    balance -= trans.amount;
-                }
-
-                if(trans.ToAddres === address){
-                    balance += trans.amount;
-                }
-            }
-        }
-        return balance;
-    }
-    // Metodo para validar um bloco retornará true se for tudo bem se não retornara false se tiver dado algo errado
-    isChainValid(){
-        for(let i = 1; i < this.chain.length; i++){
-            const currentBlock = this.chain[i];
-            const previousBlock = this.chain[i -1];
-
-            // verificar se a hash do block está validada
-            if(currentBlock.hash !== currentBlock.calculateHash()){
-                return false;
-            }
-            //verificar se bloco aponta para um anterior correto.se o nosso bloco atual tem um hash anterior que não é igual ao hash do nosso bloco anterior e se for esse o caso então novamente sabemos que algo está errado porque o nosso bloco atual não aponta para o bloco anterior.
-            if(currentBlock.previousHash !== previousBlock.hash){
-                return false;
-            }
-        }
-        return true;
-    }
-}
-
+// Cria uma nova instância da classe Blockchain
 let savjeeCoin = new Blockchain();
 
-savjeeCoin.createTransaction(new Transaction('address1', 'address2', 100));
-savjeeCoin.createTransaction(new Transaction('address2', 'address1', 50));
+//Cria uma transação e assina com sua chave
+const tx1 = new Transaction(myWalletAddress, 'public key goes here', 10);
+tx1.sigTransaction(myKey);
+savjeeCoin.addTransaction(tx1)
 
 console.log('\n Starting the miner...');
-savjeeCoin.minePendingTransactions('wallace-address');
+savjeeCoin.minePendingTransactions(myWalletAddress);
 
-console.log('\nBalance of wallace is', savjeeCoin.getBallanceOfAddress('wallace-address'));
+console.log('\nBalance of wallace is', savjeeCoin.getBallanceOfAddress(myWalletAddress));
 
-console.log('\n Starting the miner again...');
-savjeeCoin.minePendingTransactions('wallace-address');
-
-console.log('\nBalance of wallace is', savjeeCoin.getBallanceOfAddress('wallace-address'));
+console.log('Is chain valid?', savjeeCoin.isChainValid());
