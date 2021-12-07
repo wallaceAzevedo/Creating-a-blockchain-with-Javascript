@@ -1,32 +1,46 @@
-const SHA256 = require('crypto-js/sha256');
+const SHA256 = require("crypto-js/sha256");
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
 class Transaction{
-    constructor(fromAddres, ToAddres, amount){
-        this.fromAddres = fromAddres;
-        this.ToAddres = ToAddres;
+    constructor(fromAddress, toAddress, amount){
+        this.fromAddress = fromAddress;
+        this.toAddress = toAddress;
         this.amount = amount;
     }
 
+    
+//Assina uma transação com a assinatura fornecida (que é um objeto par de chaves elíptico que contém uma chave privada).
+// A assinatura é então armazenada dentro do objeto de transação e posteriormente armazenada no blockchain.
     calculateHash(){
-        return SHA256(this.fromAddres + this.ToAddres + this.amount).toString();
+        return SHA256(this.fromAddress + this.toAddress + this.amount).toString();
     }
+ 
+//Assina uma transação com a assinatura fornecida (que é um par de chaves elíptico    
 
-    sigTransaction(signingKey){
-        if(signingKey.getPublic('hex') !== this.fromAddres){
+    signTransaction(signingKey){
+
+//Você só pode enviar uma transação da carteira vinculada ao seu
+//chave. Aqui, verificamos se fromAddress corresponde à sua publicKey
+        if(signingKey.getPublic('hex') !== this.fromAddress){
             throw new Error('You cannot sign transactions for other wallets!')
         }
+
+// Calcula o hash da transação, e assina com a chave.
+// e armazená-lo dentro do objeto de transação
         const hashTx = this.calculateHash();
         const sig = signingKey.sign(hashTx, 'base64');
 
         this.signature = sig.toDER('hex');
     }
+
+//Verifica se a assinatura é válida (a transação não foi adulterada).
+//Ele usa fromAddress como a chave pública.
     
     isValid(){
 
         //verificará primeiro se o endereço de é nulo
-        if(this.fromAddres === null) return true;
+        if(this.fromAddress === null) return true;
         
 
         // verificará se existe uma assinatura
@@ -35,7 +49,7 @@ class Transaction{
         }
 
         //verifique se esta transação foi realmente assinada por aquela chave
-        const publickey = ec.keyFromPublic(this.fromAddres, 'hex');
+        const publickey = ec.keyFromPublic(this.fromAddress, 'hex');
         return publickey.verify(this.calculateHash(), this.signature);
     }
 }
@@ -56,7 +70,7 @@ class Block{
     }
     //calcular o hash de todos os blocos. E entar em uma corrente válida.
     // loop que fará  a execução continuar até que nosso hash comece com zeros suficientes.
-    minedBlock(difficulty){
+    mineBlock(difficulty){
         while(this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")){
             this.nonce++;
             this.hash = this.calculateHash();
@@ -77,18 +91,17 @@ class Block{
 
 // será o responsavel por inicializar o nosso blockchain
 class Blockchain{
-    constructor(){
-        this.chain = [this.creatingGenesisBlock()];
-        // dificulty dira quantos zeros o bloco começará
+    constructor() {
+        this.chain = [this.createGenesisBlock()];
         this.difficulty = 2;
         this.pendingTransactions = [];
-        this.miningReward = 200;
+        this.miningReward = 100;
     }
 
     // ira rertornar um novo bloco criado
-    creatingGenesisBlock(){
+    createGenesisBlock(){
         // introduzir um / index, data, um nome , hash do bloco anterios (este bloco é o primeiro bloco então ele não pode apontar para nenhum bloco anterior então começará com 0 );
-        return new Block("01/01/2021", "Genesis Block", "0")
+        return new Block(Date.parse("01/01/2021"), "Genesis Block", "0")
     }
 
     //retornara o ultimo bloco criado
@@ -96,20 +109,21 @@ class Blockchain{
         return this.chain[this.chain.length -1];
     }
     
-    minePendingTransactions(miningRewardAnddress){
-        let block = new Block(Date.now(), this.pendingTransactions);
-        block.minedBlock(this.difficulty);
+    minePendingTransactions(miningRewardAddress){
+        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
+        this.pendingTransactions.push(rewardTx);
+
+        let block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
+        block.mineBlock(this.difficulty);
 
         console.log('Block successfully mined!');
         this.chain.push(block);
 
-        this.pendingTransactions = [
-            new Transaction(null, miningRewardAnddress, this.miningReward)
-        ];
+        this.pendingTransactions = [];
     }
 
     addTransaction(transaction){
-        if(!transaction.fromAddres || !transaction.ToAddres){
+        if(!transaction.fromAddress || !transaction.toAddress){
             throw new Error('Transaction must include from and to addres');
         }
         if(!transaction.isValid()){
@@ -119,23 +133,23 @@ class Blockchain{
         this.pendingTransactions.push(transaction);
     }
 
-    getBallanceOfAddress(address){
+    getBalanceOfAddress(address){
         let balance = 0;
 
         for(const block of this.chain){
             for(const trans of block.transactions){
-                if(trans.fromAddres === address){
+                if(trans.fromAddress === address){
                     balance -= trans.amount;
                 }
 
-                if(trans.ToAddres === address){
+                if(trans.toAddress === address){
                     balance += trans.amount;
                 }
             }
         }
         return balance;
     }
-    // Metodo para validar um bloco retornará true se for tudo bem se não retornara false se tiver dado algo errado
+    // Metodo para validar um bloco retornará true se for tudo bem se não retornara false se existir algun dado errado
     isChainValid(){
         for(let i = 1; i < this.chain.length; i++){
             const currentBlock = this.chain[i];

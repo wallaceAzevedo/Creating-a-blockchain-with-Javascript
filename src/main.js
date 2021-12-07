@@ -14,12 +14,12 @@ let savjeeCoin = new Blockchain();
 
 //Cria uma transação e assina com sua chave
 const tx1 = new Transaction(myWalletAddress, 'public key goes here', 10);
-tx1.sigTransaction(myKey);
+tx1.signTransaction(myKey);
 savjeeCoin.addTransaction(tx1)
 
 console.log('\n Starting the miner...');
 savjeeCoin.minePendingTransactions(myWalletAddress);
 
-console.log('\nBalance of wallace is', savjeeCoin.getBallanceOfAddress(myWalletAddress));
+console.log('\nBalance of wallace is', savjeeCoin.getBalanceOfAddress(myWalletAddress));
 
 console.log('Is chain valid?', savjeeCoin.isChainValid());
