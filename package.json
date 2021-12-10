@@ -1,0 +1,19 @@
+{
+  "name": "simulating_blockchain_backend",
+  "version": "1.0.0",
+  "description": "<p align=\"center\">   <a href=\"\" rel=\"noopener\">  <img width=200px height=200px src=\"https://i.imgur.com/VELRxXl.png\" alt=\"Project logo\"></a> </p>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goblockchain/simulating_blockchain_backend.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/goblockchain/simulating_blockchain_backend/issues"
+  },
+  "homepage": "https://github.com/goblockchain/simulating_blockchain_backend#readme"
+}
